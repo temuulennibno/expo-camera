@@ -1,9 +1,10 @@
-import { Button, Image, StyleSheet, Text, View } from "react-native";
+import { Button, Image, Platform, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import axios from "axios";
 
 export default function TabOneScreen() {
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState<ImagePicker.ImagePickerAsset | undefined>();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
 
   if (!status || !status.granted) {
@@ -24,7 +25,7 @@ export default function TabOneScreen() {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImage(result.assets[0]);
     }
   };
 
@@ -33,7 +34,30 @@ export default function TabOneScreen() {
       quality: 1,
     });
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImage(result.assets[0]);
+    }
+  };
+  const recognizeImage = async () => {
+    if (image) {
+      const data = new FormData();
+      // @ts-ignore
+      data.append("image", {
+        name: "image",
+        type: image.type,
+        uri: image.uri,
+      });
+
+      fetch(`https://imaaager.onrender.com/api/upload`, {
+        method: "POST",
+        body: data,
+      })
+        .then((response) => response.json())
+        .then((response) => {
+          console.log("response", response);
+        })
+        .catch((error) => {
+          console.log("error", error);
+        });
     }
   };
 
@@ -41,7 +65,12 @@ export default function TabOneScreen() {
     <View style={styles.container}>
       <Button title="Choose image from gallery" onPress={pickImage} />
       <Button title="Capture image" onPress={captureImage} />
-      {image && <Image source={{ uri: image }} style={{ width: 200, height: 200 }} />}
+      {image && (
+        <View>
+          <Image source={{ uri: image.uri }} style={{ width: 200, height: 200 }} />
+          <Button title="process" onPress={recognizeImage} />
+        </View>
+      )}
     </View>
   );
 }
